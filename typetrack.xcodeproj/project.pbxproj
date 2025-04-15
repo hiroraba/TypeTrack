@@ -10,6 +10,9 @@
 		693E11B42DAC8CFF00839F1E /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 693E11B32DAC8CFF00839F1E /* FirebaseAnalytics */; };
 		693E11B62DAC8CFF00839F1E /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 693E11B52DAC8CFF00839F1E /* FirebaseCore */; };
 		6971025D2DAC92D800915524 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 6971025C2DAC92D800915524 /* FirebaseAnalyticsWithoutAdIdSupport */; };
+		697102752DAE12A000915524 /* RxBlocking in Frameworks */ = {isa = PBXBuildFile; productRef = 697102742DAE12A000915524 /* RxBlocking */; };
+		697102772DAE12A000915524 /* RxCocoa in Frameworks */ = {isa = PBXBuildFile; productRef = 697102762DAE12A000915524 /* RxCocoa */; };
+		697102792DAE12A000915524 /* RxRelay in Frameworks */ = {isa = PBXBuildFile; productRef = 697102782DAE12A000915524 /* RxRelay */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,7 +61,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				697102792DAE12A000915524 /* RxRelay in Frameworks */,
 				693E11B62DAC8CFF00839F1E /* FirebaseCore in Frameworks */,
+				697102752DAE12A000915524 /* RxBlocking in Frameworks */,
+				697102772DAE12A000915524 /* RxCocoa in Frameworks */,
 				6971025D2DAC92D800915524 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */,
 				693E11B42DAC8CFF00839F1E /* FirebaseAnalytics in Frameworks */,
 			);
@@ -123,6 +129,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				697102722DAE106000915524 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				693E11762DAC8A5100839F1E /* typetrack */,
@@ -132,6 +139,9 @@
 				693E11B32DAC8CFF00839F1E /* FirebaseAnalytics */,
 				693E11B52DAC8CFF00839F1E /* FirebaseCore */,
 				6971025C2DAC92D800915524 /* FirebaseAnalyticsWithoutAdIdSupport */,
+				697102742DAE12A000915524 /* RxBlocking */,
+				697102762DAE12A000915524 /* RxCocoa */,
+				697102782DAE12A000915524 /* RxRelay */,
 			);
 			productName = typetrack;
 			productReference = 693E11742DAC8A5100839F1E /* typetrack.app */;
@@ -217,6 +227,8 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				693E11B22DAC8CFF00839F1E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				697102702DAE105200915524 /* XCRemoteSwiftPackageReference "SwiftLint" */,
+				697102732DAE12A000915524 /* XCRemoteSwiftPackageReference "RxSwift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 693E11752DAC8A5100839F1E /* Products */;
@@ -288,6 +300,10 @@
 			isa = PBXTargetDependency;
 			target = 693E11732DAC8A5100839F1E /* typetrack */;
 			targetProxy = 693E11902DAC8A5400839F1E /* PBXContainerItemProxy */;
+		};
+		697102722DAE106000915524 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 697102712DAE106000915524 /* SwiftLintBuildToolPlugin */;
 		};
 /* End PBXTargetDependency section */
 
@@ -586,6 +602,22 @@
 				minimumVersion = 11.11.0;
 			};
 		};
+		697102702DAE105200915524 /* XCRemoteSwiftPackageReference "SwiftLint" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/realm/SwiftLint";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.59.0;
+			};
+		};
+		697102732DAE12A000915524 /* XCRemoteSwiftPackageReference "RxSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ReactiveX/RxSwift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.9.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -603,6 +635,26 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 693E11B22DAC8CFF00839F1E /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAnalyticsWithoutAdIdSupport;
+		};
+		697102712DAE106000915524 /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 697102702DAE105200915524 /* XCRemoteSwiftPackageReference "SwiftLint" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		697102742DAE12A000915524 /* RxBlocking */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 697102732DAE12A000915524 /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxBlocking;
+		};
+		697102762DAE12A000915524 /* RxCocoa */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 697102732DAE12A000915524 /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxCocoa;
+		};
+		697102782DAE12A000915524 /* RxRelay */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 697102732DAE12A000915524 /* XCRemoteSwiftPackageReference "RxSwift" */;
+			productName = RxRelay;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

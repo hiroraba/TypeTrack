@@ -8,28 +8,27 @@
 
 import Foundation
 
-
 struct GPTService {
 
     static func generateTypingTask(category: String, completion: @escaping (String?) -> Void) {
         
-        guard let apiKey = loadAPIKeyFromEnvFile() else {
+        guard let apiKey = SettingViewController.loadApiKeyFromKeychain() else {
             print("Error: OpenAI API Key could not be loaded.")
             completion(nil)
             return
         }
-        
-        let prompt = """
-タイピング練習用の日本語文章を1つ作ってください。
-100〜200文字で自然な文章をお願いします。
-見やすさを重視するために読点のあとは改行を挿入してください。
-
-内容については下記の指定に従ってください。
-指定: \(Categories(rawValue: category)?.chatGPTPrompt ?? "指定なし")
-"""
+        let commoncontent = """
+        あなたはタイピング能力を向上を目的としたソフトウェアの課題文を作るAIです。以下の条件に従って、日本語のタイピング練習用課題文を1つ作成してください：
+            • 最大200文字程度
+            • 実在する情報・事実・テーマに基づく内容
+            • 改行は不要
+            • 英単語や記号（例：“NASA”, “3.14”, “&”, “love”など）を1つ以上含める
+            • タイピング練習をしながら知識も得られるような内容にする
+        """
+        let prompt = Categories(rawValue: category)?.chatGPTPrompt ?? ""
 
         let messages = [
-            ["role": "system", "content": "あなたはタイピング課題を作るAIです。"],
+            ["role": "system", "content": commoncontent],
             ["role": "user", "content": prompt]
         ]
 
@@ -61,29 +60,16 @@ struct GPTService {
     }
 }
 
-func loadAPIKeyFromEnvFile() -> String? {
-    guard let envFilePath = Bundle.main.path(forResource: ".env", ofType: nil) else {
-            print("Error: .env not found in bundle.")
-            return nil
-        }
+import RxSwift
 
-    guard FileManager.default.fileExists(atPath: envFilePath) else {
-        print("Error: .env file not found at path: \(envFilePath)")
-        return nil
-    }
-
-    guard let content = try? String(contentsOfFile: envFilePath, encoding: .utf8) else {
-        print("Error: Could not read contents of .env file.")
-        return nil
-    }
-
-    for line in content.components(separatedBy: .newlines) {
-        let parts = line.components(separatedBy: "=")
-        if parts.count == 2 && parts[0].trimmingCharacters(in: .whitespaces) == "OPENAI_API_KEY" {
-            return parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+extension GPTService {
+    static func generateTypingTaskObservable(category: String) -> Observable<String> {
+        return Observable.create { observer in
+            generateTypingTask(category: category) { result in
+                observer.onNext(result!)
+                observer.onCompleted()
+            }
+            return Disposables.create()
         }
     }
-
-    print("Error: OPENAI_API_KEY not found in .env file.")
-    return nil
 }

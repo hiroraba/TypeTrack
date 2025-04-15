@@ -11,7 +11,6 @@ import FirebaseCore
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-    
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Insert code here to initialize your application
         FirebaseApp.configure()
@@ -24,7 +23,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
         return true
     }
-
-
 }
-
