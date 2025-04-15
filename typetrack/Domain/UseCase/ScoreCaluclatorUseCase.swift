@@ -1,5 +1,5 @@
 //
-//  ScoreCaluclatoraUseCase.swift
+//  ScoreCaluclatorUseCase.swift
 //  typetrack
 //  
 //  Created by matsuohiroki on 2025/04/15.

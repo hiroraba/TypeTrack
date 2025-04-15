@@ -1,34 +1,44 @@
 //
-//  GPTService.swift
+//  GenerateTaskRepositoryImpl.swift
 //  typetrack
-//
-//  Created by matsuohiroki on 2025/04/14.
-//
+//  
+//  Created by matsuohiroki on 2025/04/15.
+//  
 //
 
 import Foundation
+import RxSwift
 
-struct GPTService {
-
-    static func generateTypingTask(category: String, completion: @escaping (String?) -> Void) {
+public final class GenerateTaskRepositoryImpl: GenerateTaskRepositoryProtocol {
+    public func generateTask(_ category: TypingCategory) -> Observable<String> {
+        return Observable.create {[weak self] observer in
+            self?.generateTask(category: category.rawValue) { result in
+                observer.onNext(result!)
+                observer.onCompleted()
+            }
+            return Disposables.create()
+        }
+    }
+    
+    private func generateTask(category: String, completion: @escaping (String?) -> Void) {
         
         guard let apiKey = SettingViewController.loadApiKeyFromKeychain() else {
             print("Error: OpenAI API Key could not be loaded.")
             completion(nil)
             return
         }
-        let commoncontent = """
+        let commonContent = """
         あなたはタイピング能力を向上を目的としたソフトウェアの課題文を作るAIです。以下の条件に従って、日本語のタイピング練習用課題文を1つ作成してください：
-            • 最大200文字程度
+            • 200文字程度
             • 実在する情報・事実・テーマに基づく内容
             • 改行は不要
             • 英単語や記号（例：“NASA”, “3.14”, “&”, “love”など）を1つ以上含める
             • タイピング練習をしながら知識も得られるような内容にする
         """
-        let prompt = Categories(rawValue: category)?.chatGPTPrompt ?? ""
+        let prompt = TypingCategory(rawValue: category)?.chatGPTPrompt ?? ""
 
         let messages = [
-            ["role": "system", "content": commoncontent],
+            ["role": "system", "content": commonContent],
             ["role": "user", "content": prompt]
         ]
 
@@ -58,18 +68,7 @@ struct GPTService {
             completion(content.trimmingCharacters(in: .whitespacesAndNewlines))
         }.resume()
     }
-}
-
-import RxSwift
-
-extension GPTService {
-    static func generateTypingTaskObservable(category: String) -> Observable<String> {
-        return Observable.create { observer in
-            generateTypingTask(category: category) { result in
-                observer.onNext(result!)
-                observer.onCompleted()
-            }
-            return Disposables.create()
-        }
-    }
+    
+    public init() {}
+    
 }

@@ -36,12 +36,11 @@ struct TypingChartView: View {
                 Chart {
                     ForEach(adapter.records.indices, id: \.self) { index in
                         let record = adapter.records[index]
-                        PointMark(
+                        BarMark(
                             x: .value("回数", index + 1),
                             y: .value("スコア", record.score)
                         )
                         .foregroundStyle(by: .value("カテゴリ", record.category))
-                        .symbol(by: .value("カテゴリ", record.category))
                     }
                 }
                 .chartXAxis {

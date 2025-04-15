@@ -25,7 +25,7 @@ class TypingViewController: NSViewController, NSTextViewDelegate {
     private var startTime: Date?
     private var timer: Timer?
     
-    private let categories: [Categories] = [.meigen, .life, .science, .history, .technology, .culture, .art, .news]
+    private let categories: [TypingCategory] = [.meigen, .life, .science, .history, .technology, .culture, .art, .news, .phirosphy]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -42,19 +42,22 @@ class TypingViewController: NSViewController, NSTextViewDelegate {
         categorySelectButton.removeAllItems()
         categorySelectButton.addItems(withTitles: categories.map { $0.rawValue })
         
-        if let textView = inputScrollView.documentView as? NSTextView {
-            textView.delegate = self
-            textView.font = NSFont.systemFont(ofSize: 24)
-        }
-        
+        guard let textView = inputScrollView.documentView as? NSTextView else { return }
+
+        textView.delegate = self
+        textView.font = NSFont.systemFont(ofSize: 24)
+
         let scoreUseCase = ScoreCalculatorUseCaseImpl()
         let saveUseCase = SaveTypingRecordUseCaseImpl(typingHistoryRepository: TypingHistoryRepositoryImpl())
-        viewModel = TypingViewModel(scoreCalculator: scoreUseCase, saveTypingRecordUseCase: saveUseCase)
+        let generateUseCase = GenerateTypingTaskUseCaseImpl(generateTaskRepository: GenerateTaskRepositoryImpl())
+        
+        viewModel = TypingViewModel(scoreCalculator: scoreUseCase, saveTypingRecordUseCase: saveUseCase, generateTypingTaskUseCase: generateUseCase)
         
         viewModel.taskText
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] text in
                 self?.taskLabel.stringValue = text
+                textView.isEditable = true
             })
             .disposed(by: disposeBag)
         
@@ -104,8 +107,11 @@ class TypingViewController: NSViewController, NSTextViewDelegate {
         resultLabel.stringValue = ""
         generateButton.isEnabled = false
         
-        let selectedCategory = categorySelectButton.titleOfSelectedItem ?? "名言"
-        viewModel.generateTrigger.accept(selectedCategory)
+        guard let selectedCategory = categorySelectButton.titleOfSelectedItem, let category = TypingCategory(rawValue: selectedCategory) else {
+            return
+        }
+        
+        viewModel.generateTrigger.accept(category)
     }
     
     @IBAction func generateTasks(_ sender: NSMenuItem) {
