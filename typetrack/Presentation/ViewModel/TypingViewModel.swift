@@ -28,12 +28,14 @@ final class TypingViewModel {
     private let scoreCalculator: ScoreCalculatorUseCase
     private let saveTypingRecordUseCase: SaveTypingRecordUseCase
     private let generateTypingTaskUseCase: GenerateTypingTaskUseCase
+    private let analyticsRepository: AnalyticsRepositoryProtocol
     
-    init(scoreCalculator: ScoreCalculatorUseCase, saveTypingRecordUseCase: SaveTypingRecordUseCase, generateTypingTaskUseCase: GenerateTypingTaskUseCase) {
+    init(scoreCalculator: ScoreCalculatorUseCase, saveTypingRecordUseCase: SaveTypingRecordUseCase, generateTypingTaskUseCase: GenerateTypingTaskUseCase, analyticsRepository: AnalyticsRepositoryProtocol) {
         
         self.scoreCalculator = scoreCalculator
         self.saveTypingRecordUseCase = saveTypingRecordUseCase
         self.generateTypingTaskUseCase = generateTypingTaskUseCase
+        self.analyticsRepository = analyticsRepository
         
         taskText = taskTextRelay.asObservable()
         resultText = resultTextRelay.asObservable()
@@ -55,6 +57,7 @@ final class TypingViewModel {
             .compactMap { $0 }
             .do(onNext: { [weak self] text in
                 self?.taskTextRelay.accept(text)
+                self?.analyticsRepository.logGPTGenerated(category: currentCategory.value, length: text.count)
             })
             .subscribe()
             .disposed(by: disposeBag)

@@ -51,7 +51,7 @@ class TypingViewController: NSViewController, NSTextViewDelegate {
         let saveUseCase = SaveTypingRecordUseCaseImpl(typingHistoryRepository: TypingHistoryRepositoryImpl())
         let generateUseCase = GenerateTypingTaskUseCaseImpl(generateTaskRepository: GenerateTaskRepositoryImpl())
         
-        viewModel = TypingViewModel(scoreCalculator: scoreUseCase, saveTypingRecordUseCase: saveUseCase, generateTypingTaskUseCase: generateUseCase)
+        viewModel = TypingViewModel(scoreCalculator: scoreUseCase, saveTypingRecordUseCase: saveUseCase, generateTypingTaskUseCase: generateUseCase, analyticsRepository: AnalyticsRepositoryImpl())
         
         viewModel.taskText
             .observe(on: MainScheduler.instance)
