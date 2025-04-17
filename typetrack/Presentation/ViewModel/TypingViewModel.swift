@@ -29,13 +29,17 @@ final class TypingViewModel {
     private let saveTypingRecordUseCase: SaveTypingRecordUseCase
     private let generateTypingTaskUseCase: GenerateTypingTaskUseCase
     private let analyticsRepository: AnalyticsRepositoryProtocol
+    private let personalBestUseCase: GetPersonalBestUseCase
+    private let highlightMistakeUseCase: HighlightMistakeUseCase
     
-    init(scoreCalculator: ScoreCalculatorUseCase, saveTypingRecordUseCase: SaveTypingRecordUseCase, generateTypingTaskUseCase: GenerateTypingTaskUseCase, analyticsRepository: AnalyticsRepositoryProtocol) {
+    init(scoreCalculator: ScoreCalculatorUseCase, saveTypingRecordUseCase: SaveTypingRecordUseCase, generateTypingTaskUseCase: GenerateTypingTaskUseCase, analyticsRepository: AnalyticsRepositoryProtocol, personalBestUseCase: GetPersonalBestUseCase, highlightMistakeUseCase: HighlightMistakeUseCase) {
         
         self.scoreCalculator = scoreCalculator
         self.saveTypingRecordUseCase = saveTypingRecordUseCase
         self.generateTypingTaskUseCase = generateTypingTaskUseCase
         self.analyticsRepository = analyticsRepository
+        self.personalBestUseCase = personalBestUseCase
+        self.highlightMistakeUseCase = highlightMistakeUseCase
         
         taskText = taskTextRelay.asObservable()
         resultText = resultTextRelay.asObservable()
@@ -74,7 +78,7 @@ final class TypingViewModel {
                 let accuracy = Double(correctCount) / Double(expected.count) * 100
                 let elapsed = Date().timeIntervalSince(startTime)
                 let wpm = Double(actual.count) / 5.0 / (elapsed / 60.0)
-                let score = self.scoreCalculator.calculate(wpm: wpm, accuracy: accuracy, length: expected.count, mistakeCount: mistakeCount)
+                let score = self.scoreCalculator.execute(wpm: wpm, accuracy: accuracy, length: expected.count, mistakeCount: mistakeCount)
             
                 let record = TypingRecord(
                     category: currentCategory.value.rawValue,
@@ -84,12 +88,24 @@ final class TypingViewModel {
                     timestamp: Date()
                 )
                 
+                let attributed = self.highlightMistakeUseCase.execute(expected: expected, actual: actual)
+                self.highlightedTaskText.accept(attributed)
+                
+                let previousBest = self.personalBestUseCase.execute()?.score ?? 0.0
+                let isBest = score > previousBest
+
+                let result = TypingResult(
+                    score: score,
+                    accuracy: accuracy,
+                    wpm: wpm,
+                    mistakeCount: mistakeCount,
+                    isBest: isBest,
+                    previousBest: previousBest
+                )
+                
                 self.saveTypingRecordUseCase.execute(record: record)
                 
-                let attributed = self.generateHighlightedText(expected: expected, actual: actual)
-                self.highlightedTaskText.accept(attributed)
-                    
-                return String(format: "📊 accuracy: %.2f%%\nWPM: %.2f Score: %.2f", accuracy, wpm, score)
+                return TypingResultFormatter().format(result)
             }
             .bind(to: resultTextRelay)
             .disposed(by: disposeBag)
@@ -124,28 +140,6 @@ final class TypingViewModel {
                 }
             }
         }
-
         return dp[n][m]
-    }
-
-    private func generateHighlightedText(expected: String, actual: String) -> NSAttributedString {
-        let attributed = NSMutableAttributedString(string: expected)
-        let expectedChars = Array(expected)
-        let actualChars = Array(actual)
-
-        for (index, char) in expectedChars.enumerated() {
-            let range = NSRange(location: index, length: 1)
-            if index < actualChars.count {
-                if actualChars[index] == char {
-                    attributed.addAttribute(.foregroundColor, value: NSColor.labelColor, range: range)
-                } else {
-                    attributed.addAttribute(.foregroundColor, value: NSColor.systemRed, range: range)
-                }
-            } else {
-                attributed.addAttribute(.foregroundColor, value: NSColor.systemRed, range: range)
-            }
-        }
-
-        return attributed
     }
 }
