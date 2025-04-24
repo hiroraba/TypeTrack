@@ -47,11 +47,13 @@ class TypingViewController: NSViewController, NSTextViewDelegate {
         textView.delegate = self
         textView.font = NSFont.systemFont(ofSize: 24)
 
-        let scoreUseCase = ScoreCalculatorUseCaseImpl()
+        let scoreUseCase = ScoreCalculatorUseCaseImpl(repository: ScoreCaluclateRepositoryImpl())
         let saveUseCase = SaveTypingRecordUseCaseImpl(typingHistoryRepository: TypingHistoryRepositoryImpl())
         let generateUseCase = GenerateTypingTaskUseCaseImpl(generateTaskRepository: GenerateTaskRepositoryImpl())
+        let bestUseCase = GetPersonalBestUseCase(typingHistoryRepository: TypingHistoryRepositoryImpl())
+        let highlightMistakeUseCase = HighlightMistakeUseCaseImpl(repository: HighlightMistakeRepositoryImpl())
         
-        viewModel = TypingViewModel(scoreCalculator: scoreUseCase, saveTypingRecordUseCase: saveUseCase, generateTypingTaskUseCase: generateUseCase, analyticsRepository: AnalyticsRepositoryImpl())
+        viewModel = TypingViewModel(scoreCalculator: scoreUseCase, saveTypingRecordUseCase: saveUseCase, generateTypingTaskUseCase: generateUseCase, analyticsRepository: AnalyticsRepositoryImpl(), personalBestUseCase: bestUseCase, highlightMistakeUseCase: highlightMistakeUseCase)
         
         viewModel.taskText
             .observe(on: MainScheduler.instance)

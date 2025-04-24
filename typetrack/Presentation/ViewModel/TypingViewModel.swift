@@ -29,13 +29,22 @@ final class TypingViewModel {
     private let saveTypingRecordUseCase: SaveTypingRecordUseCase
     private let generateTypingTaskUseCase: GenerateTypingTaskUseCase
     private let analyticsRepository: AnalyticsRepositoryProtocol
+    private let personalBestUseCase: GetPersonalBestUseCase
+    private let highlightMistakeUseCase: HighlightMistakeUseCase
     
-    init(scoreCalculator: ScoreCalculatorUseCase, saveTypingRecordUseCase: SaveTypingRecordUseCase, generateTypingTaskUseCase: GenerateTypingTaskUseCase, analyticsRepository: AnalyticsRepositoryProtocol) {
+    init(scoreCalculator: ScoreCalculatorUseCase,
+         saveTypingRecordUseCase: SaveTypingRecordUseCase,
+         generateTypingTaskUseCase: GenerateTypingTaskUseCase,
+         analyticsRepository: AnalyticsRepositoryProtocol,
+         personalBestUseCase: GetPersonalBestUseCase,
+         highlightMistakeUseCase: HighlightMistakeUseCase) {
         
         self.scoreCalculator = scoreCalculator
         self.saveTypingRecordUseCase = saveTypingRecordUseCase
         self.generateTypingTaskUseCase = generateTypingTaskUseCase
         self.analyticsRepository = analyticsRepository
+        self.personalBestUseCase = personalBestUseCase
+        self.highlightMistakeUseCase = highlightMistakeUseCase
         
         taskText = taskTextRelay.asObservable()
         resultText = resultTextRelay.asObservable()
@@ -66,33 +75,54 @@ final class TypingViewModel {
             .withLatestFrom(taskTextRelay) { input, expected in
                 (input.userInput, expected, input.startTime)
             }
-            .map { actual, expected, startTime -> String in
-                
-                let mistakeCount = self.calculateLevenshtein(actual: actual, expected: expected)
-
-                let correctCount = expected.count - mistakeCount
-                let accuracy = Double(correctCount) / Double(expected.count) * 100
-                let elapsed = Date().timeIntervalSince(startTime)
-                let wpm = Double(actual.count) / 5.0 / (elapsed / 60.0)
-                let score = self.scoreCalculator.calculate(wpm: wpm, accuracy: accuracy, length: expected.count, mistakeCount: mistakeCount)
-            
-                let record = TypingRecord(
-                    category: currentCategory.value.rawValue,
-                    wpm: wpm,
-                    accuracy: accuracy,
-                    score: score,
-                    timestamp: Date()
-                )
-                
-                self.saveTypingRecordUseCase.execute(record: record)
-                
-                let attributed = self.generateHighlightedText(expected: expected, actual: actual)
-                self.highlightedTaskText.accept(attributed)
-                    
-                return String(format: "📊 accuracy: %.2f%%\nWPM: %.2f Score: %.2f", accuracy, wpm, score)
+            .map { actual, expected, startTime in
+                self.handleCompletion(actual: actual, expected: expected, startTime: startTime, category: currentCategory.value)
             }
             .bind(to: resultTextRelay)
             .disposed(by: disposeBag)
+    }
+    
+    private func handleCompletion(actual: String, expected: String, startTime: Date, category: TypingCategory) -> String {
+        let result = calculateTypingResult(actual: actual, expected: expected, startTime: startTime)
+        
+        
+        let record = createTypingRecord(from: result, category: category)
+        saveTypingRecordUseCase.execute(record: record)
+        
+        highlightedTaskText.accept(highlightMistakeUseCase.execute(expected: expected, actual: actual))
+        
+        return TypingResultFormatter().format(result)
+    }
+    
+    private func calculateTypingResult(actual: String, expected: String, startTime: Date) -> TypingResult {
+        let mistakeCount = calculateLevenshtein(actual: actual, expected: expected)
+        let correctCount = expected.count - mistakeCount
+        let accuracy = Double(correctCount) / Double(expected.count) * 100
+        let elapsed = Date().timeIntervalSince(startTime)
+        let wpm = Double(actual.count) / 5.0 / (elapsed / 60.0)
+        let score = scoreCalculator.execute(wpm: wpm, accuracy: accuracy, length: expected.count, mistakeCount: mistakeCount)
+        
+        let previousBest = personalBestUseCase.execute()?.score ?? 0.0
+        let isBest = score > previousBest
+        
+        return TypingResult(
+            score: score,
+            accuracy: accuracy,
+            wpm: wpm,
+            mistakeCount: mistakeCount,
+            isBest: isBest,
+            previousBest: previousBest
+        )
+    }
+    
+    private func createTypingRecord(from result: TypingResult, category: TypingCategory) -> TypingRecord {
+        return TypingRecord(
+            category: category.rawValue,
+            wpm: result.wpm,
+            accuracy: result.accuracy,
+            score: result.score,
+            timestamp: Date()
+        )
     }
     
     func updateElapsedTime(_ time: TimeInterval) {
@@ -124,28 +154,6 @@ final class TypingViewModel {
                 }
             }
         }
-
         return dp[n][m]
-    }
-
-    private func generateHighlightedText(expected: String, actual: String) -> NSAttributedString {
-        let attributed = NSMutableAttributedString(string: expected)
-        let expectedChars = Array(expected)
-        let actualChars = Array(actual)
-
-        for (index, char) in expectedChars.enumerated() {
-            let range = NSRange(location: index, length: 1)
-            if index < actualChars.count {
-                if actualChars[index] == char {
-                    attributed.addAttribute(.foregroundColor, value: NSColor.labelColor, range: range)
-                } else {
-                    attributed.addAttribute(.foregroundColor, value: NSColor.systemRed, range: range)
-                }
-            } else {
-                attributed.addAttribute(.foregroundColor, value: NSColor.systemRed, range: range)
-            }
-        }
-
-        return attributed
     }
 }
