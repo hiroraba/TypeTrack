@@ -32,7 +32,12 @@ final class TypingViewModel {
     private let personalBestUseCase: GetPersonalBestUseCase
     private let highlightMistakeUseCase: HighlightMistakeUseCase
     
-    init(scoreCalculator: ScoreCalculatorUseCase, saveTypingRecordUseCase: SaveTypingRecordUseCase, generateTypingTaskUseCase: GenerateTypingTaskUseCase, analyticsRepository: AnalyticsRepositoryProtocol, personalBestUseCase: GetPersonalBestUseCase, highlightMistakeUseCase: HighlightMistakeUseCase) {
+    init(scoreCalculator: ScoreCalculatorUseCase,
+         saveTypingRecordUseCase: SaveTypingRecordUseCase,
+         generateTypingTaskUseCase: GenerateTypingTaskUseCase,
+         analyticsRepository: AnalyticsRepositoryProtocol,
+         personalBestUseCase: GetPersonalBestUseCase,
+         highlightMistakeUseCase: HighlightMistakeUseCase) {
         
         self.scoreCalculator = scoreCalculator
         self.saveTypingRecordUseCase = saveTypingRecordUseCase
@@ -70,45 +75,54 @@ final class TypingViewModel {
             .withLatestFrom(taskTextRelay) { input, expected in
                 (input.userInput, expected, input.startTime)
             }
-            .map { actual, expected, startTime -> String in
-                
-                let mistakeCount = self.calculateLevenshtein(actual: actual, expected: expected)
-
-                let correctCount = expected.count - mistakeCount
-                let accuracy = Double(correctCount) / Double(expected.count) * 100
-                let elapsed = Date().timeIntervalSince(startTime)
-                let wpm = Double(actual.count) / 5.0 / (elapsed / 60.0)
-                let score = self.scoreCalculator.execute(wpm: wpm, accuracy: accuracy, length: expected.count, mistakeCount: mistakeCount)
-            
-                let record = TypingRecord(
-                    category: currentCategory.value.rawValue,
-                    wpm: wpm,
-                    accuracy: accuracy,
-                    score: score,
-                    timestamp: Date()
-                )
-                
-                let attributed = self.highlightMistakeUseCase.execute(expected: expected, actual: actual)
-                self.highlightedTaskText.accept(attributed)
-                
-                let previousBest = self.personalBestUseCase.execute()?.score ?? 0.0
-                let isBest = score > previousBest
-
-                let result = TypingResult(
-                    score: score,
-                    accuracy: accuracy,
-                    wpm: wpm,
-                    mistakeCount: mistakeCount,
-                    isBest: isBest,
-                    previousBest: previousBest
-                )
-                
-                self.saveTypingRecordUseCase.execute(record: record)
-                
-                return TypingResultFormatter().format(result)
+            .map { actual, expected, startTime in
+                self.handleCompletion(actual: actual, expected: expected, startTime: startTime, category: currentCategory.value)
             }
             .bind(to: resultTextRelay)
             .disposed(by: disposeBag)
+    }
+    
+    private func handleCompletion(actual: String, expected: String, startTime: Date, category: TypingCategory) -> String {
+        let result = calculateTypingResult(actual: actual, expected: expected, startTime: startTime)
+        
+        
+        let record = createTypingRecord(from: result, category: category)
+        saveTypingRecordUseCase.execute(record: record)
+        
+        highlightedTaskText.accept(highlightMistakeUseCase.execute(expected: expected, actual: actual))
+        
+        return TypingResultFormatter().format(result)
+    }
+    
+    private func calculateTypingResult(actual: String, expected: String, startTime: Date) -> TypingResult {
+        let mistakeCount = calculateLevenshtein(actual: actual, expected: expected)
+        let correctCount = expected.count - mistakeCount
+        let accuracy = Double(correctCount) / Double(expected.count) * 100
+        let elapsed = Date().timeIntervalSince(startTime)
+        let wpm = Double(actual.count) / 5.0 / (elapsed / 60.0)
+        let score = scoreCalculator.execute(wpm: wpm, accuracy: accuracy, length: expected.count, mistakeCount: mistakeCount)
+        
+        let previousBest = personalBestUseCase.execute()?.score ?? 0.0
+        let isBest = score > previousBest
+        
+        return TypingResult(
+            score: score,
+            accuracy: accuracy,
+            wpm: wpm,
+            mistakeCount: mistakeCount,
+            isBest: isBest,
+            previousBest: previousBest
+        )
+    }
+    
+    private func createTypingRecord(from result: TypingResult, category: TypingCategory) -> TypingRecord {
+        return TypingRecord(
+            category: category.rawValue,
+            wpm: result.wpm,
+            accuracy: result.accuracy,
+            score: result.score,
+            timestamp: Date()
+        )
     }
     
     func updateElapsedTime(_ time: TimeInterval) {
